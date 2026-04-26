@@ -1,0 +1,6 @@
+requests>=2.31
+urllib3>=2.0
+pandas>=2.0
+
+# Optional — only needed for query.py (ad-hoc SQL over data/alphas.jsonl)
+duckdb>=1.0
