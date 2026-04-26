@@ -4,6 +4,12 @@ Pattern-mining toolkit for the [WorldQuant Brain](https://platform.worldquantbra
 Discovers data fields, generates alpha expression candidates from templates, simulates them
 concurrently, and persists results.
 
+> **Tier:** Built for the **non-consultant** (free) Brain environment, where the platform
+> caps simultaneous simulations to **3** per user. The default `MAX_CONCURRENT_SIMS = 3`
+> in `pattern_search/config.py` matches that limit. If you have a consultant account
+> with a higher concurrency budget (e.g. 8 / 10 / 16), bump that single constant —
+> nothing else needs to change.
+
 ## Project layout
 
 ```
@@ -25,8 +31,8 @@ worldquant-pattern-miner/
 │   ├── brain_token.txt        # JWT issued by token_refresh.py (auto-generated)
 │   └── token_refresh.py       # persona-biometric auth → writes brain_token.txt
 ├── datafields/
-│   ├── datafields_query.py    # fetches data-field catalogs from the Brain API
-│   └── {REGION}/              # CSV catalogs (VECTOR{D}.csv, MATRIX{D}.csv, GROUP{D}.csv)
+│   ├── datafields_regional_master.py  # fetches data-field catalogs from the Brain API
+│   └── {REGION}/                      # CSV catalogs (VECTOR{D}.csv, MATRIX{D}.csv, GROUP{D}.csv)
 ├── data/                      # outputs & checkpoints (gitignored)
 ├── requirements.txt
 └── .gitignore
@@ -79,7 +85,7 @@ pip install -r requirements.txt
 
 3. **Data-field catalogs** — populate `datafields/{REGION}/`:
    ```bash
-   python datafields/datafields_query.py
+   python datafields/datafields_regional_master.py
    ```
    Tweak the target region/universe/delay in `DEFAULT_UNIVERSAL_CONFIG` inside the script,
    or override via env vars (`UNIVERSE`, `WORKERS`, `DEPTH`, `CAP`, `PAGE_SIZE`, …).
@@ -92,9 +98,24 @@ python pattern_search.py
 
 `pattern_search.runner.main_loop` loads CSV catalogs from `datafields/{REGION}/`,
 streams expression candidates from `EXPRESSION_TEMPLATE` (configured in
-`pattern_search/config.py`), and submits simulations concurrently against the
-Brain API. Successful alphas are appended verbatim as JSON Lines to
-`data/alphas.jsonl` by `pattern_search/db.py`.
+`pattern_search/config.py`), and submits up to `MAX_CONCURRENT_SIMS` simulations
+in parallel against the Brain API. Successful alphas are appended verbatim as
+JSON Lines to `data/alphas.jsonl` by `pattern_search/db.py`.
+
+### Concurrency & account tier
+
+`MAX_CONCURRENT_SIMS` in `pattern_search/config.py` is the single throughput knob.
+Pick the value that matches what your Brain account is allowed to run at once:
+
+| Account tier        | Typical limit | `MAX_CONCURRENT_SIMS` |
+|---------------------|---------------|-----------------------|
+| **Non-consultant**  | 3             | `3` (default)         |
+| Consultant          | ~8            | `8`                   |
+| Higher tiers        | varies        | match your quota      |
+
+Setting it higher than your account allows just produces 429/`limit-exceeded`
+errors from the Brain API and slows you down — so leave it at `3` unless you
+know you have headroom.
 
 ## Querying the alpha store
 
@@ -115,10 +136,10 @@ python query.py    # drops you into a DuckDB shell with `alphas` already bound
 
 ## Security notes
 
-- `credentials/pw`, `credentials/brain_token.txt`, and `credentials/discord.json` are
-  gitignored. **Never commit them.** If you ever pushed them, rotate the secrets.
-- The `data/` directory is gitignored — it holds outputs, checkpoints, and SQLite/CSV
-  artefacts that should not be in version control.
+- `credentials/pw` and `credentials/brain_token.txt` are gitignored. **Never commit them.**
+  If you ever pushed them, rotate your password immediately.
+- The `data/` directory is gitignored — it holds outputs (`alphas.jsonl`, `failed_alphas.jsonl`,
+  checkpoints) that should not be in version control.
 
 ## License
 
