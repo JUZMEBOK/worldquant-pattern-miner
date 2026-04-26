@@ -134,6 +134,48 @@ Or interactively:
 python query.py    # drops you into a DuckDB shell with `alphas` already bound
 ```
 
+### Useful queries
+
+**Find alphas with no FAILed checks** — the "submission-ready" set:
+
+```sql
+SELECT id,
+       regular.code        AS expression,
+       "is".sharpe,
+       "is".fitness,
+       "is".turnover,
+       "is".returns,
+       list_transform("is".checks, c -> c.name || '=' || c.result) AS checks
+FROM alphas
+WHERE NOT list_contains(list_transform("is".checks, c -> c.result), 'FAIL')
+ORDER BY "is".sharpe DESC NULLS LAST;
+```
+
+**See where alphas are failing** — distribution of check results:
+
+```sql
+SELECT c.name, c.result, count(*) AS n
+FROM alphas, UNNEST("is".checks) AS t(c)
+GROUP BY 1, 2
+ORDER BY 1, 3 DESC;
+```
+
+**Closest near-misses** — alphas that fail the *fewest* checks:
+
+```sql
+SELECT id,
+       regular.code AS expression,
+       "is".sharpe,
+       len(list_filter("is".checks, c -> c.result = 'FAIL')) AS n_fail,
+       list_transform(
+         list_filter("is".checks, c -> c.result = 'FAIL'),
+         c -> c.name
+       ) AS failed_checks
+FROM alphas
+ORDER BY n_fail ASC, "is".sharpe DESC NULLS LAST
+LIMIT 20;
+```
+
 ## Security notes
 
 - `credentials/pw` and `credentials/brain_token.txt` are gitignored. **Never commit them.**
