@@ -117,11 +117,16 @@ Setting it higher than your account allows just produces 429/`limit-exceeded`
 errors from the Brain API and slows you down — so leave it at `3` unless you
 know you have headroom.
 
-## Workshop notebook
+## Workshop notebooks
 
-A guided 20-minute walkthrough lives in `workshop.ipynb` — auth → datafield catalog
-→ config tour → live 2-minute mining run → DuckDB queries → template iteration.
-Open with `jupyter lab workshop.ipynb` (install: `pip install jupyterlab`).
+Two notebooks at the project root help students replicate the workflow:
+
+| Notebook | What it does | API calls? |
+|---|---|---|
+| **`inspect_usa.ipynb`** | Full inspection of USA datafields (4416 MATRIX + 437 VECTOR), category-by-category. Includes a *recipe library* — 8 ready-to-paste template + category combos, search-space sizes, sample rendered expressions, and a check-failure → next-template diagnostic table. **Run this first** to pick a starting point. | No — local CSVs only |
+| **`workshop.ipynb`** | 20-minute live walkthrough — auth → datafield tour → config → 2-minute mining run → DuckDB queries → iterate. | Yes — needs `credentials/pw` |
+
+Open with `jupyter lab inspect_usa.ipynb` (install: `pip install jupyterlab`).
 
 ## Querying the alpha store
 
