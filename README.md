@@ -117,6 +117,12 @@ Setting it higher than your account allows just produces 429/`limit-exceeded`
 errors from the Brain API and slows you down — so leave it at `3` unless you
 know you have headroom.
 
+## Workshop notebook
+
+A guided 20-minute walkthrough lives in `workshop.ipynb` — auth → datafield catalog
+→ config tour → live 2-minute mining run → DuckDB queries → template iteration.
+Open with `jupyter lab workshop.ipynb` (install: `pip install jupyterlab`).
+
 ## Querying the alpha store
 
 Use the bundled DuckDB helper to run SQL against `data/alphas.jsonl` directly —
