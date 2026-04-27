@@ -78,10 +78,13 @@ pip install -r requirements.txt
 
 2. **Token refresh** — generates `credentials/brain_token.txt`:
    ```bash
-   python credentials/token_refresh.py
+   python credentials/token_refresh.py            # one-shot
+   python credentials/token_refresh.py --loop     # daemon: re-auths every 3h55m forever
    ```
    On first run you may need to complete biometric (Persona) verification in your browser;
-   the script polls until the JWT is issued.
+   the script polls until the JWT is issued. **Run `--loop` in a separate terminal alongside
+   `pattern_search.py`** — the miner is now read-only with respect to the token: it never
+   re-authenticates by itself, it just waits for the daemon to refresh `brain_token.txt`.
 
 3. **Data-field catalogs** — populate `datafields/{REGION}/`:
    ```bash

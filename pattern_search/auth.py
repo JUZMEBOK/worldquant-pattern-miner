@@ -109,40 +109,40 @@ def get_consultant_summary_current():
     }
 
 
- # === Authentication: token lifecycle ===
+ # === Authentication: token lifecycle (READ-ONLY) ===
+# This process never re-authenticates by itself. Run
+# `python credentials/token_refresh.py --loop` in a separate terminal — it
+# refreshes the JWT on a 3h55m schedule. The miner just reads brain_token.txt
+# and pauses if it ever finds the file missing or the token expired.
+TOKEN_WAIT_POLL_SECONDS = 30
+
+
 def get_valid_token():
     global headers
     with token_lock:
-        try:
-            with open(os.path.join(_CRED_DIR, "brain_token.txt"), "r") as f:
-                token = f.read().strip()
-            expiry = check_token_timeout(token)
+        token_path = os.path.join(_CRED_DIR, "brain_token.txt")
+        while True:
+            try:
+                with open(token_path, "r") as f:
+                    token = f.read().strip()
+            except FileNotFoundError:
+                state.pause("no brain_token.txt — run token_refresh.py --loop")
+                print(f"⏸️ No token at {token_path}. "
+                      f"Waiting {TOKEN_WAIT_POLL_SECONDS}s for the refresher daemon…")
+                time.sleep(TOKEN_WAIT_POLL_SECONDS)
+                continue
 
-            if expiry > 300 and not force_reauth.is_set():
-                print("🔑 Using saved valid token.")
+            expiry = check_token_timeout(token)
+            if expiry > 60:
                 headers = {"Cookie": f"t={token}"}
                 state.resume("token valid")
                 return token
 
-            elif expiry == 0 or force_reauth.is_set():
-                state.pause("token expired — re-authenticating")
-                print("🔁 Performing full re-authentication.")
-                token = authenticate_with_persona()
-                headers = {"Cookie": f"t={token}"}
-                force_reauth.clear()
-                state.resume("re-authentication complete")
-                return token
-            else:
-                headers = {"Cookie": f"t={token}"}
-                return token
-
-        except FileNotFoundError:
-            state.pause("no saved token — authenticating")
-            print("⚠️ No saved token found, authenticating.")
-            token = authenticate_with_persona()
-            headers = {"Cookie": f"t={token}"}
-            state.resume("authentication complete")
-            return token
+            # Expired or unverifiable. Pause and wait for the refresher to write a fresh token.
+            state.pause(f"token expired (expiry={expiry}s) — waiting for refresher daemon")
+            print(f"⏸️ Token expired/invalid (expiry={expiry}s). "
+                  f"Waiting {TOKEN_WAIT_POLL_SECONDS}s for token_refresh.py --loop to renew it…")
+            time.sleep(TOKEN_WAIT_POLL_SECONDS)
 
 
  # === Authentication: Persona flow ===

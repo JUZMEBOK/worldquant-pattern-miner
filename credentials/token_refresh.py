@@ -68,5 +68,38 @@ def authenticate_with_persona(auto_poll_interval=5, max_retries=30):
     print("Session verified and is active!")
 
 
+# Refresh interval — Brain JWTs last ~4h. 3h55m gives a 5-minute safety margin.
+REFRESH_INTERVAL_SECONDS = 3 * 3600 + 55 * 60   # 14_100
+
+
+def loop_forever(interval: int = REFRESH_INTERVAL_SECONDS) -> None:
+    """Keep the JWT fresh: re-authenticate, sleep, repeat. Survives transient errors."""
+    print(f"🔁 Token refresher daemon — interval = {interval//60} min ({interval}s)")
+    while True:
+        started = time.time()
+        try:
+            authenticate_with_persona()
+        except SystemExit:
+            # authenticate_with_persona calls exit(1) on hard failures; treat as transient.
+            print("⚠️ Auth attempt failed; retrying in 60s.")
+            time.sleep(60)
+            continue
+        except Exception as e:
+            print(f"⚠️ Auth attempt raised {type(e).__name__}: {e}. Retrying in 60s.")
+            time.sleep(60)
+            continue
+
+        elapsed = time.time() - started
+        sleep_for = max(60, interval - elapsed)
+        wake_at = time.strftime("%H:%M:%S", time.localtime(time.time() + sleep_for))
+        print(f"💤 Sleeping {int(sleep_for)}s; next refresh at {wake_at}.")
+        time.sleep(sleep_for)
+
+
 if __name__ == "__main__":
-    authenticate_with_persona()
+    import sys
+
+    if "--loop" in sys.argv:
+        loop_forever()
+    else:
+        authenticate_with_persona()
