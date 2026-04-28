@@ -59,7 +59,7 @@ gracefully. The pause clears once re-authentication succeeds.
 ## Installation
 
 ```bash
-git clone https://github.com/<your-user>/worldquant-pattern-miner.git
+git clone https://github.com/JUZMEBOK/worldquant-pattern-miner.git
 cd worldquant-pattern-miner
 
 python -m venv .venv
