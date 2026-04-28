@@ -83,9 +83,6 @@ pip install -r requirements.txt
    verbatim with `json.load`, so the brackets and double quotes are required and
    the password must be JSON-escaped (`\\` for `\`, `\"` for `"`).
 
-   *Optional, macOS/Linux only:* `chmod 600 credentials/pw` to restrict
-   permissions. On Windows just keep the file out of any synced/shared folder.
-
 2. **Token refresh** — generates `credentials/brain_token.txt`:
    ```bash
    python credentials/token_refresh.py            # daemon (default): re-auths every 3h55m forever
