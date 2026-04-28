@@ -15,9 +15,11 @@ concurrently, and persists results.
 ```
 worldquant-pattern-miner/
 ├── pattern_search.py          # entry script: python pattern_search.py
+├── query.py                   # DuckDB CLI over data/alphas.jsonl
+├── workshop.ipynb             # 20-min guided walkthrough
 ├── pattern_search/            # main package (alpha generator + simulator)
 │   ├── runner.py              # main_loop orchestration
-│   ├── auth.py                # token lifecycle, persona flow, pauses on expiry
+│   ├── auth.py                # token lifecycle (read-only); pauses on expiry
 │   ├── catalog.py             # CSV resolvers, type/category buckets
 │   ├── expressions.py         # placeholder/template streamers
 │   ├── simulation.py          # start/poll/fetch alpha simulations
@@ -29,7 +31,7 @@ worldquant-pattern-miner/
 ├── credentials/
 │   ├── pw                     # WorldQuant Brain login (JSON: ["email", "password"])
 │   ├── brain_token.txt        # JWT issued by token_refresh.py (auto-generated)
-│   └── token_refresh.py       # persona-biometric auth → writes brain_token.txt
+│   └── token_refresh.py       # persona-biometric auth daemon → writes brain_token.txt
 ├── datafields/
 │   ├── datafields_regional_master.py  # fetches data-field catalogs from the Brain API
 │   └── {REGION}/                      # CSV catalogs (VECTOR{D}.csv, MATRIX{D}.csv, GROUP{D}.csv)
@@ -54,7 +56,8 @@ retried at startup. No external database is required.
 When the Brain JWT expires or fails validation, ``auth.get_valid_token()``
 sets the in-process ``state.pause_event``. All API-side work (new sim starts,
 expression streaming) checks ``is_paused()`` and waits; existing polls finish
-gracefully. The pause clears once re-authentication succeeds.
+gracefully. The pause clears once the `token_refresh.py` daemon writes a fresh
+token to `credentials/brain_token.txt`.
 
 ## Installation
 
@@ -95,10 +98,12 @@ pip install -r requirements.txt
 
 3. **Data-field catalogs** — populate `datafields/{REGION}/`:
    ```bash
-   python datafields/datafields_regional_master.py
+   python datafields/datafields_regional_master.py            # uses USER_CONFIG defaults
+   python datafields/datafields_regional_master.py JPN        # CLI arg overrides region
+   REGION=EUR python datafields/datafields_regional_master.py # env var also works
    ```
-   Tweak the target region/universe/delay in `DEFAULT_UNIVERSAL_CONFIG` inside the script,
-   or override via env vars (`UNIVERSE`, `WORKERS`, `DEPTH`, `CAP`, `PAGE_SIZE`, …).
+   Edit the `USER_CONFIG` dict at the top of the script to change region, delays
+   `[1]` / `[0]` / `[1, 0]`, or types `["VECTOR", "MATRIX"]`.
 
 ## Running
 
@@ -127,16 +132,16 @@ Setting it higher than your account allows just produces 429/`limit-exceeded`
 errors from the Brain API and slows you down — so leave it at `3` unless you
 know you have headroom.
 
-## Workshop notebooks
+## Workshop notebook
 
-Two notebooks at the project root help students replicate the workflow:
+`workshop.ipynb` at the project root is a 20-minute guided walkthrough — auth →
+datafield tour → config → 2-minute mining run → DuckDB queries → iterate. It
+calls the Brain API, so `credentials/pw` must be set up first.
 
-| Notebook | What it does | API calls? |
-|---|---|---|
-| **`inspect_usa.ipynb`** | Full inspection of USA datafields (4416 MATRIX + 437 VECTOR), category-by-category. Includes a *recipe library* — 8 ready-to-paste template + category combos, search-space sizes, sample rendered expressions, and a check-failure → next-template diagnostic table. **Run this first** to pick a starting point. | No — local CSVs only |
-| **`workshop.ipynb`** | 20-minute live walkthrough — auth → datafield tour → config → 2-minute mining run → DuckDB queries → iterate. | Yes — needs `credentials/pw` |
-
-Open with `jupyter lab inspect_usa.ipynb` (install: `pip install jupyterlab`).
+```bash
+pip install jupyterlab
+jupyter lab workshop.ipynb
+```
 
 ## Querying the alpha store
 
