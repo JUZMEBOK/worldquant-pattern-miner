@@ -14,7 +14,7 @@ def authenticate_with_persona(auto_poll_interval=5, max_retries=30):
     session = requests.Session()
 
     # Load credentials securely once
-    with PW_FILE.open() as f:
+    with PW_FILE.open(encoding="utf-8") as f:
         session.auth = tuple(json.load(f))
 
     # Initial authentication attempt
@@ -55,7 +55,7 @@ def authenticate_with_persona(auto_poll_interval=5, max_retries=30):
     # Capture and save JWT token
     jwt_token = session.cookies.get("t")
     CREDENTIALS_DIR.mkdir(parents=True, exist_ok=True)
-    with TOKEN_FILE.open("w") as f:
+    with TOKEN_FILE.open("w", encoding="utf-8") as f:
         f.write(jwt_token)
     print(f"Authentication token stored at {TOKEN_FILE}.")
 
@@ -99,7 +99,7 @@ def loop_forever(interval: int = REFRESH_INTERVAL_SECONDS) -> None:
 if __name__ == "__main__":
     import sys
 
-    if "--loop" in sys.argv:
-        loop_forever()
-    else:
+    if "--once" in sys.argv:
         authenticate_with_persona()
+    else:
+        loop_forever()

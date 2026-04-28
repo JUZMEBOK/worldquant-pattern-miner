@@ -7,9 +7,15 @@ import shutil
 import logging
 import threading
 from datetime import datetime
+from pathlib import Path
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from queue import Queue
+
+# Anchor every path to this script's location so CWD doesn't matter
+# (works identically on macOS, Linux and Windows).
+_SCRIPT_DIR = Path(__file__).resolve().parent
+_PROJECT_DIR = _SCRIPT_DIR.parent
 
 # ---------------------- Logging Setup ----------------------
 logging.basicConfig(
@@ -34,7 +40,7 @@ USER_CONFIG = {
 
 # ---------------------- Constants ----------------------
 BRAIN_API_URL = "https://api.worldquantbrain.com"
-TOKEN_PATH = os.getenv("BRAIN_TOKEN_PATH", "../credentials/brain_token.txt")
+TOKEN_PATH = os.getenv("BRAIN_TOKEN_PATH", str(_PROJECT_DIR / "credentials" / "brain_token.txt"))
 
 REGION_UNIVERSE = {
     "USA": "TOP3000",
@@ -381,8 +387,9 @@ def run_regional_master(region_arg=None):
 
     universe = REGION_UNIVERSE[target_region]
     
-    out_dir = f"./{target_region}" # Relative to runtime or absolute
-    out_dir = os.path.abspath(out_dir)
+    # Always write CSVs next to this script (datafields/{REGION}/), not into
+    # whatever the caller's CWD happens to be.
+    out_dir = str(_SCRIPT_DIR / target_region)
     
     logger.info(f"=== Starting Regional Master for {target_region} (Univ: {universe}) ===")
     

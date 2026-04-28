@@ -39,7 +39,8 @@ worldquant-pattern-miner/
 ```
 
 All scripts anchor paths to the project root via `Path(__file__).resolve().parent[.parent]`,
-so they run correctly regardless of the current working directory.
+so they run correctly regardless of the current working directory and OS — Windows,
+macOS and Linux all behave identically.
 
 ## Requirements
 
@@ -69,21 +70,30 @@ pip install -r requirements.txt
 
 ## Configuration
 
-1. **Credentials** — copy the template and fill in your Brain login:
-   ```bash
-   cp credentials/pw.example credentials/pw
-   chmod 600 credentials/pw
+1. **Credentials** — create a plain-text file at `credentials/pw` (no extension)
+   containing **exactly one line**: a JSON array with your Brain login email and
+   password.
+
+   ```json
+   ["your_email@example.com", "your_password"]
    ```
-   `pw` must be a JSON array: `["your_email", "your_password"]`.
+
+   Make it in any editor (VS Code, Notepad, TextEdit in *plain text* mode, etc.) —
+   no terminal needed. Just save the file as `credentials/pw`. The miner reads it
+   verbatim with `json.load`, so the brackets and double quotes are required and
+   the password must be JSON-escaped (`\\` for `\`, `\"` for `"`).
+
+   *Optional, macOS/Linux only:* `chmod 600 credentials/pw` to restrict
+   permissions. On Windows just keep the file out of any synced/shared folder.
 
 2. **Token refresh** — generates `credentials/brain_token.txt`:
    ```bash
-   python credentials/token_refresh.py            # one-shot
-   python credentials/token_refresh.py --loop     # daemon: re-auths every 3h55m forever
+   python credentials/token_refresh.py            # daemon (default): re-auths every 3h55m forever
+   python credentials/token_refresh.py --once     # one-shot, then exit
    ```
    On first run you may need to complete biometric (Persona) verification in your browser;
-   the script polls until the JWT is issued. **Run `--loop` in a separate terminal alongside
-   `pattern_search.py`** — the miner is now read-only with respect to the token: it never
+   the script polls until the JWT is issued. **Run it in a separate terminal alongside
+   `pattern_search.py`** — the miner is read-only with respect to the token: it never
    re-authenticates by itself, it just waits for the daemon to refresh `brain_token.txt`.
 
 3. **Data-field catalogs** — populate `datafields/{REGION}/`:
