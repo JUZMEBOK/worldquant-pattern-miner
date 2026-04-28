@@ -5,7 +5,7 @@ from types import MappingProxyType
 SIMULATION_CONFIG = MappingProxyType({
     'region': 'USA',
     'universe': 'TOP3000',
-    'neutralization': 'SUBINDUSTRY',
+    'neutralization': 'MARKET',
     'truncation': 0.01,
     'decay': 0,
     'delay': 1,
@@ -20,8 +20,8 @@ REQUIRED_TYPE = {  # Explicit per-placeholder type requirement (VECTOR/MATRIX/GR
 
 # Map placeholders to CSV categories. This lets multiple placeholders (e.g., option_a/option_b) pull from the same 'option' bucket.
 PLACEHOLDER_CATEGORY = {
-    "a": "news",
-    "b": "news",
+    "a": "model",
+    "b": "model",
 }
 
 # If True, when multiple placeholders resolve to the SAME base category (e.g., both 'option'), enforce that their selected IDs are different.
