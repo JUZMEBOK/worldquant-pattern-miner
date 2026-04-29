@@ -62,7 +62,7 @@ token to `credentials/brain_token.txt`.
 ## Installation
 
 ```bash
-git clone https://github.com/JUZMEBOK/worldquant-pattern-miner.git
+git clone https://github.com/JUZMEBOK/worldquant-pattern-miner
 cd worldquant-pattern-miner
 
 python -m venv .venv
