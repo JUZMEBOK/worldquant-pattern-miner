@@ -153,10 +153,11 @@ def main_loop():
 
     poll_interval = 6
     last_poll = 0
+    gen_exhausted = False  # set once when the streaming generator raises StopIteration
 
     while True:
         # --- Refill queue from giant stream (no pre-cap; enumerates all pairs) ---
-        if using_stream and not is_paused():
+        if using_stream and not gen_exhausted and not is_paused():
             # Pull in batches so we start quickly; this does NOT cap the total space.
             with state.datafields_lock:
                 need = max(0, STREAM_REFILL_BATCH - len(state.datafields))
@@ -165,6 +166,7 @@ def main_loop():
                 try:
                     expr = next(expr_generator)
                 except StopIteration:
+                    gen_exhausted = True
                     break
                 # Final cross-check against the simulated set to ensure no repeats
                 if expr in already_simulated_exprs:
@@ -180,18 +182,10 @@ def main_loop():
         with state.active_sims_lock:
             _has_active = bool(state.active_sims)
 
-        # If streaming: only break when both queue is empty, no active sims, AND generator is exhausted
+        # Exit only when nothing is queued, nothing is in flight, and (in stream mode)
+        # the generator has been fully drained.
         if using_stream:
-            gen_exhausted = False
-            if expr_generator is not None:
-                try:
-                    # Peek one item to detect exhaustion without losing it
-                    _next = next(expr_generator)
-                    with state.datafields_lock:
-                        state.datafields.appendleft(_next)
-                except StopIteration:
-                    gen_exhausted = True
-            if not (_has_datafields or _has_active or (not gen_exhausted)):
+            if not _has_datafields and not _has_active and gen_exhausted:
                 break
         else:
             if not (_has_datafields or _has_active):
